@@ -20,7 +20,7 @@ Open http://127.0.0.1:8000. Run tests with `python -m pytest`.
 
 - `GET /api/health` returns `{ "status": "ok" }`.
 - `POST /api/analyze` accepts a multipart `file` with a `.csv` filename and returns row count, columns, missing counts, numeric summaries, and up to 50 preview rows. Numeric summaries include mean, median, mode, mode frequency/ties, minimum, maximum, range, population and sample variance/standard deviation, Q1, Q3, and IQR.
-- `POST /api/clean/preview` accepts a multipart `file`, `selected_columns` (JSON string array), `missing_values` (`keep`, `drop_rows`, or `fill`), `fill_value`, and `remove_duplicates` (boolean). It returns the effect of the selected operations and up to 100 output rows.
+- `POST /api/clean/preview` accepts a multipart `file`, `selected_columns` (JSON string array), `missing_values` (`keep`, `drop_rows`, or `fill`), `fill_value`, and `remove_duplicates` (boolean). It returns the effect of the selected operations and up to 50 output rows.
 - `POST /api/clean/download` accepts the same fields and streams a cleaned CSV download. Preview and download each process the source once, so preview does not store a user file between requests.
 
 All errors use FastAPI's JSON `{ "detail": "..." }` shape. Only CSV is supported. Blank fields count as missing for cleaning; other text such as `NA` remains user data. Duplicate rows are compared exactly after the selected columns and missing-value rule are applied. When deduplication is on, SQLite stores row keys on temporary disk rather than keeping a growing Python set in memory.
@@ -34,3 +34,4 @@ All errors use FastAPI's JSON `{ "detail": "..." }` shape. Only CSV is supported
 CSV input is processed in chunks, so a large file is not loaded as one DataFrame. Memory still scales with the chunk's rows, column widths, and number of columns. Exact deduplication uses temporary disk and adds CPU/disk work proportional to the number of rows. Preview then download repeats the cleaning pass to avoid retaining files between requests. Exact median/mode/quantiles and deduplication can be CPU or disk intensive; for sustained concurrent jobs, move processing to a job queue and give jobs explicit time and storage quotas.
 
 Pandas is suitable while the chunk's working set and required operations fit the CPU and memory budget of one machine. For multi-gigabyte joins, global sort, repeated analytical queries, or exact high-cardinality operations that exceed the machine's limits, evaluate DuckDB for local analytical SQL. Use a distributed engine such as Spark only when the data or throughput exceeds a single machine and the operational cost is justified.
+
