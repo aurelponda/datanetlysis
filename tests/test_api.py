@@ -24,7 +24,10 @@ def test_analyze_csv_returns_chunked_summary_and_preview():
     assert data["rows"] == 3
     assert data["columns"] == ["value", "label"]
     assert data["missing"]["value"] == 1
-    assert data["numeric_summary"]["value"] == {"count": 2, "mean": 1.5, "min": 1.0, "max": 2.0}
+    summary = data["numeric_summary"]["value"]
+    assert {key: summary[key] for key in ("count", "mean", "min", "max", "median")} == {
+        "count": 2, "mean": 1.5, "min": 1.0, "max": 2.0, "median": 1.5
+    }
     assert len(data["preview"]) == 3
 
 
@@ -52,7 +55,10 @@ def test_aggregates_across_multiple_chunks(monkeypatch):
     assert response.status_code == 200
     data = response.json()
     assert data["rows"] == 5
-    assert data["numeric_summary"]["amount"] == {"count": 5, "mean": 3.0, "min": 1.0, "max": 5.0}
+    summary = data["numeric_summary"]["amount"]
+    assert {key: summary[key] for key in ("count", "mean", "min", "max", "median")} == {
+        "count": 5, "mean": 3.0, "min": 1.0, "max": 5.0, "median": 3.0
+    }
 
 
 def test_rejects_upload_over_configured_limit(monkeypatch):
@@ -126,7 +132,45 @@ def test_non_finite_numeric_values_do_not_break_json_response():
     assert response.status_code == 200
     data = response.json()
     assert data["missing"]["value"] == 1
-    assert data["numeric_summary"]["value"] == {"count": 2, "mean": 2.0, "min": 1.0, "max": 3.0}
+    summary = data["numeric_summary"]["value"]
+    assert {key: summary[key] for key in ("count", "mean", "min", "max", "median")} == {
+        "count": 2, "mean": 2.0, "min": 1.0, "max": 3.0, "median": 2.0
+    }
+
+
+def test_calculates_center_and_spread_statistics():
+    response = client.post(
+        "/api/analyze",
+        files={"file": ("stats.csv", "value\n1\n2\n2\n4\n", "text/csv")},
+    )
+    assert response.status_code == 200
+    summary = response.json()["numeric_summary"]["value"]
+    assert summary["count"] == 4
+    assert summary["mean"] == 2.25
+    assert summary["median"] == 2.0
+    assert summary["mode"] == 2
+    assert summary["mode_frequency"] == 2
+    assert summary["mode_tie_count"] == 1
+    assert summary["min"] == 1.0 and summary["max"] == 4.0 and summary["range"] == 3.0
+    assert summary["variance_population"] == 1.1875
+    assert summary["variance_sample"] == 1.5833333333333333
+    assert summary["q1"] == 1.75 and summary["q3"] == 2.5 and summary["iqr"] == 0.75
+    assert summary["exact_distribution"] is True
+
+
+def test_distribution_statistics_fall_back_when_disk_budget_is_exceeded(monkeypatch):
+    monkeypatch.setattr(main, "MAX_STATS_DB_BYTES", 1)
+    response = client.post(
+        "/api/analyze",
+        files={"file": ("stats.csv", "value\n1\n2\n3\n", "text/csv")},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["numeric_summary"]["value"]["mean"] == 2.0
+    assert data["numeric_summary"]["value"]["median"] is None
+    assert data["numeric_summary"]["value"]["exact_distribution"] is False
+    assert data["exact_distribution_available"] is False
+    assert data["statistics_note"]
 
 
 def test_clean_download_removes_temporary_output_after_response(monkeypatch, tmp_path):

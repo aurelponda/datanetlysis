@@ -7,6 +7,7 @@ services:
       MAX_UPLOAD_BYTES: "52428800"
       CSV_CHUNK_ROWS: "10000"
       MAX_CONCURRENT_JOBS: "1"
+      MAX_STATS_DB_BYTES: "67108864"
       CORS_ORIGINS: ""
     read_only: true
     tmpfs:

@@ -112,7 +112,22 @@ function renderResults(data) {
     const number = document.createElement("strong"); number.textContent = Number(value).toLocaleString("id-ID");
     card.append(title, number); metrics.append(card);
   }
-  section.append(metrics, makeTable("Ringkasan numerik", ["Kolom", "Jumlah", "Rata-rata", "Minimum", "Maksimum"], Object.entries(data.numeric_summary).map(([name, stats]) => [name, stats.count, stats.mean, stats.min, stats.max])));
+  const note = document.createElement("p");
+  note.className = "stats-note";
+  note.textContent = data.statistics_note || "Varians dan simpangan baku ditampilkan untuk populasi dan sampel (n−1). Kuartil memakai interpolasi linear; jika semua nilai unik, modus tidak ditampilkan.";
+  section.append(
+    metrics,
+    note,
+    makeTable(
+      "Ukuran pemusatan dan penyebaran",
+      ["Kolom", "Jumlah", "Rata-rata", "Median", "Modus", "Frekuensi modus", "Modus seri", "Minimum", "Maksimum", "Rentang", "Varians populasi", "Simpangan baku populasi", "Varians sampel", "Simpangan baku sampel", "Q1", "Q3", "IQR"],
+      Object.entries(data.numeric_summary).map(([name, stats]) => [
+        name, stats.count, stats.mean, stats.median, stats.mode, stats.mode_frequency, stats.mode_tie_count,
+        stats.min, stats.max, stats.range, stats.variance_population, stats.stddev_population,
+        stats.variance_sample, stats.stddev_sample, stats.q1, stats.q3, stats.iqr,
+      ]),
+    ),
+  );
   section.append(makeTable("Preview data", data.columns, data.preview.map((row) => data.columns.map((column) => row[column] ?? ""))));
   results.append(section); results.hidden = false;
 }
