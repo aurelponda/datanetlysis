@@ -1,0 +1,10 @@
+target/
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+*.log
+.env
+frontend/node_modules/
+.github-pages/
