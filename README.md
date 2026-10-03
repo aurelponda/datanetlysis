@@ -35,3 +35,14 @@ CSV input is processed in chunks, so a large file is not loaded as one DataFrame
 
 Pandas is suitable while the chunk's working set and required operations fit the CPU and memory budget of one machine. For multi-gigabyte joins, global sort, repeated analytical queries, or exact high-cardinality operations that exceed the machine's limits, evaluate DuckDB for local analytical SQL. Use a distributed engine such as Spark only when the data or throughput exceeds a single machine and the operational cost is justified.
 
+### Deploy to Railway
+
+The repository's Dockerfile is detected automatically by Railway. The container listens on Railway's injected `PORT` value (and uses port 8000 for local Docker runs).
+
+1. In Railway, create a project and choose **Deploy from GitHub repo**, then select `aurelponda/datanetlysis`.
+2. Wait for the Docker build and deployment to finish. In the service settings, set the healthcheck path to `/api/health`.
+3. Under **Networking**, choose **Generate Domain** to make the app reachable at a Railway URL with HTTPS.
+4. Set the service variables to the limits appropriate for the selected instance: `MAX_UPLOAD_BYTES=52428800`, `CSV_CHUNK_ROWS=10000`, `MAX_COLUMNS=500`, `MAX_CONCURRENT_JOBS=1`, and `MAX_STATS_DB_BYTES=67108864`.
+5. Check the deployment logs and open `/api/health` on the generated domain.
+
+The app currently has no accounts or per-user upload quotas. Keep the generated domain private during testing; before accepting public uploads, add authentication and rate/quota controls and verify resource limits with representative files. Railway builds from the Dockerfile; `docker-compose.yml` is intended for local Docker use.
