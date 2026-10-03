@@ -269,7 +269,7 @@ def _analyze_csv(file_obj) -> dict[str, Any]:
                     batch_m2 = math.inf
                 total_count = old_count + batch_count
                 delta = batch_mean - aggregate["mean"]
-                aggregate["mean"] += delta * batch_count / total_count
+                aggregate["mean"] = aggregate["mean"] * (old_count / total_count) + batch_mean * (batch_count / total_count)
                 aggregate["m2"] += batch_m2 + delta * delta * old_count * batch_count / total_count
                 aggregate["count"] = total_count
                 batch_min, batch_max = min(finite_values), max(finite_values)
@@ -388,7 +388,8 @@ def _quantile(database: sqlite3.Connection, column_id: int, count: int, percenti
     lower, upper = math.floor(position), math.ceil(position)
     low_value = _ordered_value(database, column_id, lower)
     high_value = _ordered_value(database, column_id, upper)
-    return low_value + (high_value - low_value) * (position - lower)
+    fraction = position - lower
+    return low_value * (1 - fraction) + high_value * fraction
 
 
 def _exact_distribution_stats(database: sqlite3.Connection, column_id: int, count: int) -> dict[str, Any]:
@@ -408,9 +409,9 @@ def _exact_distribution_stats(database: sqlite3.Connection, column_id: int, coun
         mode = int(decimal_mode) if decimal_mode == decimal_mode.to_integral_value() else float(decimal_mode)
     else:
         tie_count = None
-    q1 = _quantile(database, column_id, count, 0.25)
-    median = _quantile(database, column_id, count, 0.5)
-    q3 = _quantile(database, column_id, count, 0.75)
+    q1 = _finite_or_none(_quantile(database, column_id, count, 0.25))
+    median = _finite_or_none(_quantile(database, column_id, count, 0.5))
+    q3 = _finite_or_none(_quantile(database, column_id, count, 0.75))
     return {
         "median": median,
         "mode": mode,
@@ -418,7 +419,7 @@ def _exact_distribution_stats(database: sqlite3.Connection, column_id: int, coun
         "mode_tie_count": int(tie_count) if tie_count is not None else None,
         "q1": q1,
         "q3": q3,
-        "iqr": q3 - q1,
+        "iqr": _finite_or_none(q3 - q1) if q3 is not None and q1 is not None else None,
     }
 
 

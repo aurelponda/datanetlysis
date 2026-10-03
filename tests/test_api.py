@@ -173,6 +173,18 @@ def test_distribution_statistics_fall_back_when_disk_budget_is_exceeded(monkeypa
     assert data["statistics_note"]
 
 
+def test_extreme_finite_values_do_not_emit_non_json_infinities():
+    response = client.post(
+        "/api/analyze",
+        files={"file": ("extreme.csv", "value\n-1e308\n1e308\n", "text/csv")},
+    )
+    assert response.status_code == 200
+    summary = response.json()["numeric_summary"]["value"]
+    assert summary["median"] == 0.0
+    assert summary["range"] is None
+    assert summary["iqr"] == 1e308
+
+
 def test_clean_download_removes_temporary_output_after_response(monkeypatch, tmp_path):
     monkeypatch.setattr(main.tempfile, "tempdir", str(tmp_path))
     response = client.post(
