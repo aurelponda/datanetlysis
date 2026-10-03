@@ -153,7 +153,11 @@ public class DatasetParser {
         List<Map<String, Object>> result = new ArrayList<>(normalized.size());
         for (List<String> row : normalized) result.add(new LinkedHashMap<>());
         for (int c = 0; c < width; c++) {
-            List<String> values = normalized.stream().map(row -> row.get(c)).filter(v -> !blank(v)).toList();
+            List<String> values = new ArrayList<>();
+            for (List<String> row : normalized) {
+                String candidate = row.get(c);
+                if (!blank(candidate)) values.add(candidate);
+            }
             boolean allBoolean = !values.isEmpty() && values.stream().allMatch(this::isBoolean);
             boolean allNumeric = !values.isEmpty() && values.stream().allMatch(v -> parseNumber(v) != null);
             boolean allDate = !values.isEmpty() && values.stream().allMatch(v -> parseDate(v) != null);
