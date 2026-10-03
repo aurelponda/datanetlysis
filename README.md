@@ -1,6 +1,6 @@
 # Data Analyzer
 
-Small web application for analyzing CSV files. FastAPI serves a static frontend and a JSON API. CSV data is processed in bounded pandas chunks; the service retains only a 100-row preview and compact aggregates.
+A small FastAPI web app for inspecting and cleaning CSV files. The Indonesian UI lets users inspect a dataset, choose columns, remove duplicate rows, handle blank cells, preview the result, and download a cleaned CSV.
 
 ## Run locally
 
@@ -8,28 +8,29 @@ Requires Python 3.11+.
 
 ```sh
 python -m venv .venv
-# Windows: .venv\Scripts\activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 # macOS/Linux: source .venv/bin/activate
-pip install -e ".[test]"
+python -m pip install -e ".[test]"
 uvicorn app.main:app --reload
 ```
 
-Open http://127.0.0.1:8000. Run tests with `pytest`.
+Open http://127.0.0.1:8000. Run tests with `python -m pytest`.
 
 ## API
 
 - `GET /api/health` returns `{ "status": "ok" }`.
-- `POST /api/analyze` accepts a multipart `file` with a `.csv` filename and returns row count, columns, missing counts, numeric summaries, and up to 100 preview rows.
+- `POST /api/analyze` accepts a multipart `file` with a `.csv` filename and returns row count, columns, missing counts, numeric summaries, and up to 50 preview rows.
+- `POST /api/clean/preview` accepts a multipart `file`, `selected_columns` (JSON string array), `missing_values` (`keep`, `drop_rows`, or `fill`), `fill_value`, and `remove_duplicates` (boolean). It returns the effect of the selected operations and up to 100 output rows.
+- `POST /api/clean/download` accepts the same fields and streams a cleaned CSV download. Preview and download each process the source once, so preview does not store a user file between requests.
 
-Errors use FastAPI's consistent JSON shape `{ "detail": "..." }` and HTTP status codes. Only CSV is supported in this first version; spreadsheet formats are not silently interpreted as CSV.
+All errors use FastAPI's JSON `{ "detail": "..." }` shape. Only CSV is supported. Blank fields count as missing for cleaning; other text such as `NA` remains user data. Duplicate rows are compared exactly after the selected columns and missing-value rule are applied. When deduplication is on, SQLite stores row keys on temporary disk rather than keeping a growing Python set in memory.
 
 ## Limits and deployment
 
-`MAX_UPLOAD_BYTES` defaults to 50 MiB, `CSV_CHUNK_ROWS` to 10,000, and `MAX_COLUMNS` to 500. Set `CORS_ORIGINS` to a comma-separated list only when the UI is hosted on a separate trusted origin; same-origin deployment needs no CORS exception. Place a reverse proxy/API gateway in front and set its body-size and request-time limits to match the app. Deploy with `docker compose up --build`; the container runs as a non-root user with a read-only root filesystem, bounded temporary storage, and CPU/memory limits.
+`MAX_UPLOAD_BYTES` defaults to 50 MiB, `CSV_CHUNK_ROWS` to 10,000, `MAX_COLUMNS` to 500, and `MAX_CONCURRENT_JOBS` to 1. The upload middleware caps multipart bodies before FastAPI spools uploads; the endpoint also checks the parsed file size. The single job slot protects memory and CPU on a small instance; busy requests receive HTTP 503 and can be retried. Increase concurrency only after measuring peak memory with representative data. `CORS_ORIGINS` is empty by default; configure exact trusted origins only if hosting the UI separately.
 
-The chunk size bounds the DataFrame working set but does not bound total processing time. One synchronous analysis job can still consume CPU for the duration of the request. For sustained concurrent workloads, add a job queue and per-user quotas; for multi-gigabyte files, high-cardinality exact group-bys, joins, or interactive repeated queries, use a query engine such as DuckDB for local analytical SQL or a distributed engine such as Spark when data exceeds one machine. Keep pandas for datasets whose chunk aggregates and required operations fit a single machine's memory and CPU budget.
+`docker compose up --build` runs the service as a non-root user with a read-only root filesystem, a bounded temporary filesystem, no added Linux capabilities, and CPU/memory limits. Before public release, put it behind HTTPS and an ingress with matching body-size and request-time limits. Add user authentication, per-user quotas, and distributed rate limiting before allowing public uploads; the current app does not include accounts and is suitable for local development or a trusted test deployment. Avoid logging uploaded content or sensitive CSV data.
 
-## Security notes
+CSV input is processed in chunks, so a large file is not loaded as one DataFrame. Memory still scales with the chunk's rows, column widths, and number of columns. Exact deduplication uses temporary disk and adds CPU/disk work proportional to the number of rows. Preview then download repeats the cleaning pass to avoid retaining files between requests. For sustained concurrent jobs, move processing to a job queue and give jobs explicit time and storage quotas.
 
-The server validates extension, enforces a byte limit while streaming to a generated temporary path, never trusts the client filename as a path, parses in a worker thread, and deletes the temporary file on success or failure. The UI inserts returned values using `textContent` to avoid interpreting uploaded strings as HTML. Add authentication and rate limiting before exposing uploads to an untrusted public audience.
-
+Pandas is suitable while the chunk's working set and required operations fit the CPU and memory budget of one machine. For multi-gigabyte joins, global sort, repeated analytical queries, or exact high-cardinality operations that exceed the machine's limits, evaluate DuckDB for local analytical SQL. Use a distributed engine such as Spark only when the data or throughput exceeds a single machine and the operational cost is justified.
