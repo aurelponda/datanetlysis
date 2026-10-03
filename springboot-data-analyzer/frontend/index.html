@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f8">
+  <meta name="description" content="Unggah, tinjau, dan analisis dataset statistik dengan ringkas.">
+  <title>Data Analyzer — Analisis statistik</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="css/app.css">
+  <script src="js/config.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigasi utama">
+      <a class="brand" href="#overview" aria-label="Data Analyzer, beranda">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 18V9m5 9V5m5 13v-6m5 6V8"/></svg></span>
+        <span><strong>data<span>wise</span></strong><small>STATISTICAL WORKSPACE</small></span>
+      </a>
+      <div class="side-label">WORKSPACE</div>
+      <nav class="side-nav">
+        <a href="#overview" class="nav-link active" data-view="overview"><span class="nav-icon">◫</span>Ringkasan</a>
+        <a href="#data" class="nav-link" data-view="data"><span class="nav-icon">▤</span>Data preview</a>
+        <a href="#statistics" class="nav-link" data-view="statistics"><span class="nav-icon">∑</span>Statistik</a>
+        <a href="#charts" class="nav-link" data-view="charts"><span class="nav-icon">▥</span>Visualisasi</a>
+        <a href="#cleaning" class="nav-link" data-view="cleaning"><span class="nav-icon">⌁</span>Pembersihan</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="privacy-note"><span class="privacy-dot"></span><div><b>Privat secara default</b><small>Dataset diproses sementara</small></div></div>
+        <button class="nav-link settings-link" data-view="settings"><span class="nav-icon">⚙</span>Pengaturan</button>
+        <div class="sidebar-version">DATAWISE <span>v1.0</span></div>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark" aria-hidden="true">D</span><strong>data<span>wise</span></strong></div>
+        <div class="breadcrumb"><span>Workspace</span><span class="crumb-sep">/</span><strong id="crumb-current">Ringkasan</strong></div>
+        <div class="top-actions">
+          <span class="file-status" id="file-status"><i></i><span>Belum ada dataset</span></span>
+          <button class="button button-primary button-upload" id="header-upload"><span aria-hidden="true">＋</span> Unggah data</button>
+          <button class="icon-button theme-toggle" id="theme-toggle" aria-label="Aktifkan mode gelap" title="Ganti tema">◐</button>
+        </div>
+      </header>
+
+      <main id="main-content">
+        <section class="welcome" id="empty-state">
+          <div class="welcome-copy">
+            <div class="eyebrow"><span class="eyebrow-dot"></span> ANALISIS DATA, TANPA RUMIT</div>
+            <h1>Ubah data menjadi<br><span>keputusan yang jelas.</span></h1>
+            <p>Unggah dataset, tinjau kualitasnya, lalu temukan pola statistik dalam satu workspace.</p>
+            <div class="welcome-points"><span><b>01</b> Baca data</span><span><b>02</b> Analisis</span><span><b>03</b> Bagikan hasil</span></div>
+          </div>
+          <div class="upload-card" id="drop-zone" tabindex="0" role="region" aria-label="Area unggah file CSV atau XLSX">
+            <div class="upload-illustration"><span class="file-sheet"><i></i><i></i><i></i><b>↥</b></span><span class="upload-spark spark-one">✳</span><span class="upload-spark spark-two">✧</span></div>
+            <h2>Mulai dengan dataset Anda</h2>
+            <p>Tarik file ke area ini atau pilih dari perangkat</p>
+            <button class="button button-primary" id="choose-file">Pilih file <span aria-hidden="true">→</span></button>
+            <div class="file-types"><span>CSV</span><span>XLSX</span><small>Maks. 10 MB</small></div>
+            <input id="file-input" type="file" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+          </div>
+          <div class="welcome-footer"><span>Dirancang untuk eksplorasi yang cepat</span><span>Data Anda tetap di dalam sesi kerja</span></div>
+        </section>
+
+        <section id="workspace" class="workspace hidden" aria-live="polite">
+          <div class="page-heading" id="overview">
+            <div><div class="eyebrow">WORKSPACE / DATASET AKTIF</div><h1 id="dataset-title">Dataset</h1><p id="dataset-subtitle">Ringkasan analisis dataset Anda.</p></div>
+            <div class="heading-actions"><button class="button button-secondary" id="export-summary">↓ <span>Ringkasan CSV</span></button><button class="button button-primary" id="replace-file">＋ <span>Dataset baru</span></button></div>
+          </div>
+          <div class="summary-grid" id="summary-grid"></div>
+
+          <section class="content-section" id="data">
+            <div class="section-heading"><div><div class="eyebrow">01 / EKSPLORASI</div><h2>Data preview</h2><p>Tinjau baris, cari nilai, dan urutkan kolom untuk memeriksa data.</p></div><div class="section-meta" id="table-count"></div></div>
+            <div class="panel table-panel">
+              <div class="table-toolbar">
+                <label class="search-field"><span aria-hidden="true">⌕</span><input id="search-input" type="search" placeholder="Cari di semua kolom…" aria-label="Cari data"></label>
+                <div class="filter-controls"><select id="filter-column" aria-label="Kolom filter"><option value="">Semua kolom</option></select><select id="filter-operator" aria-label="Operator filter"><option value="contains">Mengandung</option><option value="=">Sama dengan</option><option value="!=">Tidak sama</option><option value=">">Lebih besar</option><option value="<">Lebih kecil</option><option value=">=">Minimal</option><option value="<=">Maksimal</option><option value="startsWith">Diawali</option></select><input id="filter-value" type="text" placeholder="Nilai filter" aria-label="Nilai filter"><button class="button button-secondary button-small" id="apply-filter">Filter</button><button class="text-button" id="clear-filter">Hapus</button></div>
+              </div>
+              <div class="table-scroll"><table id="data-table"><caption class="sr-only">Preview dataset yang sedang aktif</caption><thead></thead><tbody></tbody></table></div>
+              <div class="table-footer"><span id="page-summary">Menampilkan 0 baris</span><div class="pagination"><button class="icon-button" id="page-prev" aria-label="Halaman sebelumnya">←</button><span id="page-number">1 / 1</span><button class="icon-button" id="page-next" aria-label="Halaman berikutnya">→</button><select id="page-size" aria-label="Baris per halaman"><option>15</option><option selected>25</option><option>50</option></select></div></div>
+            </div>
+            <div class="type-legend" id="type-legend"></div>
+          </section>
+
+          <section class="content-section" id="statistics">
+            <div class="section-heading"><div><div class="eyebrow">02 / RINGKASAN NUMERIK</div><h2>Statistik deskriptif</h2><p>Pilih satu atau beberapa kolom numerik untuk dibandingkan.</p></div><span class="section-meta" id="selected-count"></span></div>
+            <div class="panel selection-panel"><div class="panel-topline"><b>Kolom analisis</b><button class="text-button" id="select-numeric">Pilih semua numerik</button></div><div class="column-picker" id="statistics-columns"></div></div>
+            <div id="statistics-results" class="statistics-results"></div>
+          </section>
+
+          <section class="content-section" id="charts">
+            <div class="section-heading"><div><div class="eyebrow">03 / VISUALISASI</div><h2>Grafik dataset</h2><p>Pilih jenis visualisasi dan kolom yang ingin dijelajahi.</p></div></div>
+            <div class="panel chart-panel" id="chart-panel">
+              <div class="chart-controls"><label>Jenis grafik<select id="chart-type"><option value="histogram">Histogram</option><option value="bar">Bar chart</option><option value="line">Line chart</option><option value="pie">Pie chart</option><option value="scatter">Scatter plot</option><option value="box">Box plot</option></select></label><label>Kolom<select id="chart-column"></select></label><label class="scatter-control hidden">Sumbu X<select id="chart-x"></select></label><label class="scatter-control hidden">Sumbu Y<select id="chart-y"></select></label><button class="button button-primary button-small" id="render-chart">Buat grafik</button></div>
+              <div class="chart-actions"><span id="chart-caption">Grafik berdasarkan nilai dataset aktif</span><div><button class="text-button" id="reset-chart">Atur ulang</button><button class="text-button" id="toggle-legend">Legenda</button><button class="text-button" id="fullscreen-chart">Layar penuh</button><button class="text-button" id="download-chart">Unduh PNG</button></div></div>
+              <div class="chart-stage" id="chart-stage"><canvas id="dataset-chart" aria-label="Grafik dataset" role="img"></canvas><canvas id="box-chart" class="hidden" aria-label="Box plot dataset" role="img"></canvas><div class="chart-empty" id="chart-empty">Pilih kolom untuk membuat grafik.</div></div>
+            </div>
+          </section>
+
+          <section class="content-section" id="cleaning">
+            <div class="section-heading"><div><div class="eyebrow">04 / KUALITAS DATA</div><h2>Pembersihan data</h2><p>Tinjau nilai kosong dan terapkan perubahan pada salinan kerja.</p></div><button class="button button-secondary" id="reset-data">Pulihkan data asli</button></div>
+            <div class="cleaning-grid"><div class="panel missing-panel"><div class="panel-topline"><div><b>Missing values</b><small>Sel kosong pada dataset aktif</small></div><strong id="missing-total">0</strong></div><div class="missing-list" id="missing-list"></div></div>
+              <div class="panel cleaning-form"><div class="panel-topline"><div><b>Perubahan data</b><small>Perubahan hanya berlaku di sesi ini</small></div></div><label class="form-label">Tangani nilai kosong<select id="missing-strategy"><option value="ignore">Abaikan (default)</option><option value="removeRows">Hapus baris yang kosong</option><option value="mean">Isi kolom numerik dengan mean</option><option value="median">Isi kolom numerik dengan median</option><option value="mode">Isi dengan mode</option></select></label><div class="form-check"><input type="checkbox" id="remove-duplicates"><label for="remove-duplicates">Hapus baris duplikat</label></div><div class="form-label">Hapus kolom terpilih<div id="remove-columns" class="remove-column-list"></div></div><div class="form-label rename-label">Ganti nama kolom (opsional)<div id="rename-columns" class="rename-column-list"></div></div><button class="button button-primary apply-cleaning" id="apply-cleaning">Terapkan perubahan</button></div></div>
+          </section>
+
+          <section class="content-section settings-section" id="settings">
+            <div class="section-heading"><div><div class="eyebrow">PREFERENSI</div><h2>Pengaturan</h2><p>Tema tampilan dan ekspor dataset.</p></div></div>
+            <div class="panel settings-panel"><div><b>Tampilan</b><small>Preferensi tema tersimpan di browser ini.</small></div><button class="button button-secondary" id="settings-theme">Ganti tema</button><div><b>Ekspor data aktif</b><small>Unduh dataset setelah perubahan diterapkan.</small></div><div class="export-actions"><button class="button button-secondary" id="export-csv">↓ Ekspor CSV</button><button class="button button-secondary" id="export-xlsx">↓ Ekspor XLSX</button></div></div>
+          </section>
+          <footer class="workspace-footer"><span>Datawise · Eksplorasi statistik yang lebih jelas.</span><span>File sumber tidak disimpan permanen oleh aplikasi.</span></footer>
+        </section>
+      </main>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="busy-overlay hidden" id="busy-overlay"><div class="loader"></div><span id="busy-label">Memproses dataset…</span></div>
+    </div>
+  </div>
+  <nav class="mobile-nav" aria-label="Navigasi mobile"><a href="#overview" data-view="overview" class="active"><span>◫</span>Ringkas</a><a href="#data" data-view="data"><span>▤</span>Data</a><a href="#statistics" data-view="statistics"><span>∑</span>Statistik</a><a href="#charts" data-view="charts"><span>▥</span>Grafik</a><a href="#cleaning" data-view="cleaning"><span>⌁</span>Bersih</a><a href="#settings" data-view="settings"><span>⚙</span>Setelan</a></nav>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
